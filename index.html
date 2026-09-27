@@ -35,8 +35,8 @@
   }
   .stage::before{ content:""; display:block; padding-top:133.333%; }
   .flip{position:absolute; inset:0; z-index:1;}
-  .flip.mirror{transform:scaleX(-1);}
-  video, canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; visibility:hidden;}
+  canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
   #overlay{cursor:grab; touch-action:none; z-index:2;}
   .guide{position:absolute; inset:6%; border:2px dashed rgba(255,255,255,.35); border-radius:20px; pointer-events:none; z-index:3;}
   .hint{position:absolute; bottom:8px; right:8px; left:8px; text-align:center; font-size:.7rem; color:#ddd; background:rgba(0,0,0,.45); padding:4px 8px; border-radius:8px; z-index:4;}
@@ -117,7 +117,7 @@
 </div>
 
 <a id="dl" download="outfit-preview.png"></a>
-<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 3</div>
+<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 4</div>
 
 <script>
 const video = document.getElementById('video');
@@ -244,7 +244,9 @@ function pos(e){
   const r = overlay.getBoundingClientRect();
   const cx = (e.touches?e.touches[0].clientX:e.clientX) - r.left;
   const cy = (e.touches?e.touches[0].clientY:e.clientY) - r.top;
-  return {x:cx/overlay.width, y:cy/overlay.height};
+  let fx = cx/overlay.width;
+  if(currentFacing==='user') fx = 1 - fx;
+  return {x:fx, y:cy/overlay.height};
 }
 function hit(p){
   for(const key of ['bottom','top']){
@@ -313,9 +315,21 @@ function kp(keypoints, name){
   return {x:p.x, y:p.y};
 }
 
+function drawVideoFrame(){
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw || !vh) return;
+  const scale = Math.max(overlay.width/vw, overlay.height/vh);
+  const dw=vw*scale, dh=vh*scale;
+  ctx.drawImage(video, (overlay.width-dw)/2, (overlay.height-dh)/2, dw, dh);
+}
+
 async function poseLoop(){
   if(video.readyState>=2 && overlay.width>0){
+    ctx.save();
     ctx.clearRect(0,0,overlay.width,overlay.height);
+    const mirror = currentFacing==='user';
+    if(mirror){ ctx.translate(overlay.width,0); ctx.scale(-1,1); }
+    drawVideoFrame();
     if(usePose && detector){
       try{
         const poses = await detector.estimatePoses(video, {flipHorizontal:false});
@@ -381,6 +395,7 @@ async function poseLoop(){
     } else {
       drawManual();
     }
+    ctx.restore();
   }
   requestAnimationFrame(poseLoop);
 }
@@ -398,10 +413,6 @@ const guide = document.getElementById('guide');
 let currentFacing = 'user';
 let currentStream = null;
 
-function applyMirror(){
-  flipWrap.classList.toggle('mirror', currentFacing==='user');
-}
-
 async function openCamera(facing){
   if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
   status.textContent='جارِ طلب إذن الكاميرا...';
@@ -417,7 +428,6 @@ async function openCamera(facing){
   const stream = await navigator.mediaDevices.getUserMedia(constraints);
   currentStream = stream;
   currentFacing = facing;
-  applyMirror();
   video.srcObject = stream;
   await new Promise(res=>{ video.onloadedmetadata = res; });
   setStageSize();
@@ -462,18 +472,8 @@ if(screen.orientation) screen.orientation.addEventListener('change', handleOrien
 /* ---------- snapshot ---------- */
 document.getElementById('snapBtn').onclick = ()=>{
   if(!video.srcObject){ status.textContent='شغّل الكاميرا أولاً.'; return; }
-  const tmp = document.createElement('canvas');
-  tmp.width = overlay.clientWidth; tmp.height = overlay.clientHeight;
-  const tctx = tmp.getContext('2d');
-  const vw=video.videoWidth, vh=video.videoHeight;
-  const scale = Math.max(tmp.width/vw, tmp.height/vh);
-  const dw=vw*scale, dh=vh*scale;
-  if(currentFacing==='user'){ tctx.translate(tmp.width,0); tctx.scale(-1,1); }
-  tctx.drawImage(video, (tmp.width-dw)/2, (tmp.height-dh)/2, dw, dh);
-  tctx.drawImage(overlay, 0, 0, tmp.width, tmp.height);
-  tctx.setTransform(1,0,0,1,0,0);
   const dl = document.getElementById('dl');
-  dl.href = tmp.toDataURL('image/png');
+  dl.href = overlay.toDataURL('image/png');
   dl.click();
   status.textContent='تم حفظ الصورة.';
 };
