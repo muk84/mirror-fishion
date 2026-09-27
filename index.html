@@ -81,6 +81,7 @@
 <div class="panel">
   <div class="row">
     <button id="startBtn">📷 تشغيل الكاميرا</button>
+    <button id="stopBtn" class="secondary">⏹ إيقاف الكاميرا</button>
     <button id="snapBtn" class="secondary">📸 حفظ صورة</button>
     <button id="modeBtn" class="secondary">🔄 تبديل الوضع</button>
     <button id="camBtn" class="secondary">🤳 أمامية/خلفية</button>
@@ -116,6 +117,7 @@
 </div>
 
 <a id="dl" download="outfit-preview.png"></a>
+<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 3</div>
 
 <script>
 const video = document.getElementById('video');
@@ -155,7 +157,9 @@ function resizeCanvas(){
 }
 function setStageSize(){
   const stage = document.getElementById('stage');
-  stage.style.height = Math.round(stage.clientWidth * 4/3) + 'px';
+  let h = Math.round(stage.clientWidth * 4/3);
+  if(!h || h < 50) h = 480;
+  stage.style.height = h + 'px';
   resizeCanvas();
 }
 window.addEventListener('resize', setStageSize);
@@ -439,6 +443,16 @@ document.getElementById('camBtn').onclick = async ()=>{
   }catch(e){
     status.textContent='تعذر تبديل الكاميرا على هذا الجهاز.';
   }
+};
+
+document.getElementById('stopBtn').onclick = ()=>{
+  if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; }
+  video.srcObject = null;
+  usePose = false; detector = null; poseFailed = false; smooth = {};
+  ctx.clearRect(0,0,overlay.width,overlay.height);
+  modeBadge.textContent = 'وضع: --';
+  hintText.textContent = 'اضغط "تشغيل الكاميرا" للبدء';
+  status.textContent = 'تم إيقاف الكاميرا.';
 };
 
 function handleOrientation(){ setTimeout(setStageSize, 250); }
