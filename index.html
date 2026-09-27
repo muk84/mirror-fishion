@@ -68,7 +68,7 @@
 <h1>👗 مرآة الأناقة</h1>
 <p class="sub">يعمل بشكل جيد على شاشة الهاتف. شغّل الكاميرا، ويمكنك التبديل بين الأمامية والخلفية، وقف داخل الإطار المتقطع بحيث يظهر جسمك كاملاً بوضوح ليتعرف عليه التطبيق تلقائيًا.</p>
 
-<div class="stage">
+<div class="stage" id="stage">
   <div class="flip" id="flipWrap">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="overlay"></canvas>
@@ -153,7 +153,13 @@ function resizeCanvas(){
   overlay.width = overlay.clientWidth;
   overlay.height = overlay.clientHeight;
 }
-window.addEventListener('resize', resizeCanvas);
+function setStageSize(){
+  const stage = document.getElementById('stage');
+  stage.style.height = Math.round(stage.clientWidth * 4/3) + 'px';
+  resizeCanvas();
+}
+window.addEventListener('resize', setStageSize);
+setStageSize();
 
 function drawPolygon(points, color){
   if(points.length<3) return;
@@ -410,7 +416,7 @@ async function openCamera(facing){
   applyMirror();
   video.srcObject = stream;
   await new Promise(res=>{ video.onloadedmetadata = res; });
-  resizeCanvas();
+  setStageSize();
   status.textContent='الكاميرا تعمل — قف بحيث يظهر جسمك كاملاً داخل الإطار المتقطع.';
 }
 
@@ -435,7 +441,7 @@ document.getElementById('camBtn').onclick = async ()=>{
   }
 };
 
-function handleOrientation(){ setTimeout(resizeCanvas, 250); }
+function handleOrientation(){ setTimeout(setStageSize, 250); }
 window.addEventListener('orientationchange', handleOrientation);
 if(screen.orientation) screen.orientation.addEventListener('change', handleOrientation);
 
