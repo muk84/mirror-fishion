@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مرآة الأناقة - تنسيق الملابس</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --panel2:#20242e; --text:#f2f3f5; --muted:#9aa1ad;
+    --accent:#e0a458; --border:#2c3140;
+    padding-top: env(safe-area-inset-top,0px);
+    padding-bottom: env(safe-area-inset-bottom,0px);
+    box-sizing:border-box;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f4f5f7; --panel:#ffffff; --panel2:#eef0f3; --text:#1b1e24; --muted:#5b6270; --border:#dfe2e8;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Tahoma","Segoe UI",system-ui,sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    padding:16px; gap:16px;
+  }
+  h1{font-size:1.15rem; margin:4px 0 0; text-align:center;}
+  p.sub{color:var(--muted); font-size:.85rem; margin:0 0 8px; text-align:center; max-width:520px;}
+  .stage{
+    position:relative; width:100%; max-width:480px; aspect-ratio:3/4;
+    background:#000; border-radius:16px; overflow:hidden; border:1px solid var(--border);
+  }
+  .flip{position:absolute; inset:0;}
+  .flip.mirror{transform:scaleX(-1);}
+  video, canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  #overlay{cursor:grab; touch-action:none;}
+  .guide{position:absolute; inset:6%; border:2px dashed rgba(255,255,255,.35); border-radius:20px; pointer-events:none;}
+  .hint{position:absolute; bottom:8px; right:8px; left:8px; text-align:center; font-size:.7rem; color:#ddd; background:rgba(0,0,0,.45); padding:4px 8px; border-radius:8px;}
+  .badge{position:absolute; top:8px; right:8px; font-size:.65rem; background:rgba(0,0,0,.5); color:#fff; padding:3px 8px; border-radius:20px;}
+  .panel{
+    width:100%; max-width:480px; background:var(--panel); border:1px solid var(--border);
+    border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px;
+  }
+  .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  label{font-size:.8rem; color:var(--muted); min-width:60px;}
+  .swatches{display:flex; gap:6px; flex-wrap:wrap;}
+  .sw{width:26px; height:26px; border-radius:50%; border:2px solid var(--border); cursor:pointer;}
+  .sw.selected{border-color:var(--accent); transform:scale(1.15);}
+  input[type=color]{width:36px; height:36px; border:none; border-radius:8px; background:none; padding:0; cursor:pointer;}
+  button{
+    background:var(--accent); color:#221703; border:none; border-radius:10px; padding:10px 14px;
+    font-weight:bold; cursor:pointer; font-size:.85rem;
+  }
+  button.secondary{background:var(--panel2); color:var(--text); border:1px solid var(--border);}
+  button.active{outline:2px solid var(--accent);}
+  .harmony{display:flex; gap:8px; flex-wrap:wrap;}
+  .h-item{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:.65rem; color:var(--muted); cursor:pointer;}
+  .h-chip{width:38px; height:38px; border-radius:10px; border:1px solid var(--border);}
+  #status{font-size:.75rem; color:var(--muted); text-align:center; min-height:16px;}
+  a#dl{display:none;}
+</style>
+</head>
+<body>
+<h1>👗 مرآة الأناقة</h1>
+<p class="sub">يعمل بشكل جيد على شاشة الهاتف. شغّل الكاميرا، ويمكنك التبديل بين الأمامية والخلفية، وقف داخل الإطار المتقطع بحيث يظهر جسمك كاملاً بوضوح ليتعرف عليه التطبيق تلقائيًا.</p>
+
+<div class="stage">
+  <div class="flip" id="flipWrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+  </div>
+  <div class="guide" id="guide"></div>
+  <div class="badge" id="modeBadge">وضع: --</div>
+  <div class="hint" id="hintText">اضغط "تشغيل الكاميرا" للبدء</div>
+</div>
+
+<div class="panel">
+  <div class="row">
+    <button id="startBtn">📷 تشغيل الكاميرا</button>
+    <button id="snapBtn" class="secondary">📸 حفظ صورة</button>
+    <button id="modeBtn" class="secondary">🔄 تبديل الوضع</button>
+    <button id="camBtn" class="secondary">🤳 أمامية/خلفية</button>
+  </div>
+
+  <div class="row">
+    <label>القطعة العلوية</label>
+    <input type="color" id="topColor" value="#3b5b8c">
+    <div class="swatches" id="topSw"></div>
+  </div>
+  <div class="row">
+    <label>صورة القطعة</label>
+    <input type="file" accept="image/*" id="topImgInput" style="max-width:150px;font-size:.7rem;color:var(--muted);">
+    <button id="topImgClear" class="secondary" style="padding:6px 10px;font-size:.7rem;">إزالة</button>
+  </div>
+  <div class="row">
+    <label>القطعة السفلية</label>
+    <input type="color" id="bottomColor" value="#22262e">
+    <div class="swatches" id="bottomSw"></div>
+  </div>
+  <div class="row">
+    <label>صورة القطعة</label>
+    <input type="file" accept="image/*" id="bottomImgInput" style="max-width:150px;font-size:.7rem;color:var(--muted);">
+    <button id="bottomImgClear" class="secondary" style="padding:6px 10px;font-size:.7rem;">إزالة</button>
+  </div>
+
+  <div>
+    <label>اقتراحات تنسيق الألوان (بناءً على اللون العلوي)</label>
+    <div class="harmony" id="harmony"></div>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<a id="dl" download="outfit-preview.png"></a>
+
+<script>
+const video = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const ctx = overlay.getContext('2d');
+const status = document.getElementById('status');
+const modeBadge = document.getElementById('modeBadge');
+const hintText = document.getElementById('hintText');
+const palette = ['#3b5b8c','#c0392b','#27ae60','#f1c40f','#8e44ad','#2c3e50','#e67e22','#ecf0f1','#1abc9c','#7f1d1d'];
+
+function buildSwatches(containerId, input){
+  const c = document.getElementById(containerId);
+  palette.forEach(color=>{
+    const d = document.createElement('div');
+    d.className='sw'; d.style.background=color;
+    d.onclick=()=>{ input.value=color; input.dispatchEvent(new Event('input')); markSelected(containerId,d); };
+    c.appendChild(d);
+  });
+}
+function markSelected(containerId, el){
+  document.getElementById(containerId).querySelectorAll('.sw').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+buildSwatches('topSw', document.getElementById('topColor'));
+buildSwatches('bottomSw', document.getElementById('bottomColor'));
+
+/* ---------- manual fallback boxes ---------- */
+function makeBox(x,y,w,h,color){ return {x,y,w,h,color}; }
+let boxes = {
+  top: makeBox(0.28,0.30,0.44,0.28,document.getElementById('topColor').value),
+  bottom: makeBox(0.30,0.58,0.40,0.32,document.getElementById('bottomColor').value)
+};
+
+function resizeCanvas(){
+  overlay.width = overlay.clientWidth;
+  overlay.height = overlay.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
+function drawPolygon(points, color){
+  if(points.length<3) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for(let i=1;i<points.length;i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.6;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle='rgba(255,255,255,.55)';
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+}
+
+function drawImageFitted(img, center, angle, w, h){
+  ctx.save();
+  ctx.translate(center.x, center.y);
+  ctx.rotate(angle);
+  ctx.globalAlpha = 0.92;
+  ctx.drawImage(img, -w/2, -h/2, w, h);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+/* ---------- uploaded clothing images ---------- */
+let topImgRaw=null, topTinted=null, bottomImgRaw=null, bottomTinted=null;
+function retint(which){
+  const img = which==='top' ? topImgRaw : bottomImgRaw;
+  if(!img) return;
+  const color = document.getElementById(which+'Color').value;
+  const off = document.createElement('canvas');
+  off.width = img.naturalWidth; off.height = img.naturalHeight;
+  const octx = off.getContext('2d');
+  octx.drawImage(img,0,0);
+  octx.globalCompositeOperation='color';
+  octx.fillStyle = color;
+  octx.fillRect(0,0,off.width,off.height);
+  octx.globalCompositeOperation='destination-in';
+  octx.drawImage(img,0,0);
+  if(which==='top') topTinted=off; else bottomTinted=off;
+}
+function loadClothingImage(file, which){
+  const img = new Image();
+  img.onload = ()=>{
+    if(which==='top') topImgRaw=img; else bottomImgRaw=img;
+    retint(which);
+    status.textContent='تم إضافة صورة الملابس — يمكنك الآن تغيير لونها من منتقي الألوان.';
+  };
+  img.src = URL.createObjectURL(file);
+}
+document.getElementById('topImgInput').addEventListener('change', e=>{ if(e.target.files[0]) loadClothingImage(e.target.files[0],'top'); });
+document.getElementById('bottomImgInput').addEventListener('change', e=>{ if(e.target.files[0]) loadClothingImage(e.target.files[0],'bottom'); });
+document.getElementById('topImgClear').onclick = ()=>{ topImgRaw=null; topTinted=null; document.getElementById('topImgInput').value=''; };
+document.getElementById('bottomImgClear').onclick = ()=>{ bottomImgRaw=null; bottomTinted=null; document.getElementById('bottomImgInput').value=''; };
+
+function drawManual(){
+  Object.entries(boxes).forEach(([key,b])=>{
+    const x=b.x*overlay.width, y=b.y*overlay.height, w=b.w*overlay.width, h=b.h*overlay.height;
+    const tinted = key==='top' ? topTinted : bottomTinted;
+    if(tinted){
+      ctx.globalAlpha=0.92;
+      ctx.drawImage(tinted, x, y, w, h);
+      ctx.globalAlpha=1;
+    } else {
+      ctx.fillStyle=b.color; ctx.globalAlpha=0.55;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x,y,w,h,16) : ctx.rect(x,y,w,h);
+      ctx.fill(); ctx.globalAlpha=1;
+    }
+    ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=2; ctx.strokeRect(x,y,w,h);
+  });
+}
+
+let active=null, mode='move', start=null;
+function pos(e){
+  const r = overlay.getBoundingClientRect();
+  const cx = (e.touches?e.touches[0].clientX:e.clientX) - r.left;
+  const cy = (e.touches?e.touches[0].clientY:e.clientY) - r.top;
+  return {x:cx/overlay.width, y:cy/overlay.height};
+}
+function hit(p){
+  for(const key of ['bottom','top']){
+    const b=boxes[key];
+    if(p.x>b.x && p.x<b.x+b.w && p.y>b.y && p.y<b.y+b.h) return key;
+  }
+  return null;
+}
+function down(e){
+  if(usePose) return;
+  const p=pos(e); const key=hit(p);
+  if(key){ active=key; start={p, b:{...boxes[key]}}; mode = e.shiftKey?'resize':'move'; }
+}
+function move(e){
+  if(!active || usePose) return;
+  e.preventDefault();
+  const p=pos(e); const b=boxes[active], s=start;
+  if(mode==='move'){
+    b.x = Math.min(Math.max(s.b.x + (p.x-s.p.x),0), 1-b.w);
+    b.y = Math.min(Math.max(s.b.y + (p.y-s.p.y),0), 1-b.h);
+  } else {
+    b.w = Math.min(Math.max(s.b.w + (p.x-s.p.x), 0.1), 0.9-b.x);
+    b.h = Math.min(Math.max(s.b.h + (p.y-s.p.y), 0.1), 0.9-b.y);
+  }
+}
+function up(){ active=null; }
+overlay.addEventListener('mousedown',down);
+overlay.addEventListener('mousemove',move);
+window.addEventListener('mouseup',up);
+overlay.addEventListener('touchstart',down,{passive:true});
+overlay.addEventListener('touchmove',move,{passive:false});
+overlay.addEventListener('touchend',up);
+
+/* ---------- pose detection (automatic) ---------- */
+let detector=null, usePose=false, poseFailed=false;
+let smooth={};
+function smoothPt(name, p){
+  if(!p) return smooth[name];
+  const prev = smooth[name];
+  const s = prev ? {x: prev.x*0.6+p.x*0.4, y: prev.y*0.6+p.y*0.4} : p;
+  smooth[name]=s;
+  return s;
+}
+async function initPose(){
+  try{
+    hintText.textContent='جارٍ تحميل نموذج الكشف التلقائي عن الجسم...';
+    await tf.setBackend('webgl'); await tf.ready();
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      {modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING}
+    );
+    usePose = true;
+    modeBadge.textContent='وضع: تلقائي';
+    hintText.textContent='قف بحيث يظهر جسمك بالكامل تقريبًا في الإطار';
+  }catch(e){
+    usePose = false; poseFailed = true;
+    modeBadge.textContent='وضع: يدوي';
+    hintText.textContent='تعذر تحميل الكشف التلقائي — اسحب المربعات يدويًا';
+    status.textContent='تعذر تحميل نموذج الكشف التلقائي، تم التفعيل التلقائي للوضع اليدوي.';
+  }
+}
+
+function kp(keypoints, name){
+  const p = keypoints.find(k=>k.name===name);
+  if(!p || p.score<0.3) return null;
+  return {x:p.x, y:p.y};
+}
+
+async function poseLoop(){
+  if(video.readyState>=2 && overlay.width>0){
+    ctx.clearRect(0,0,overlay.width,overlay.height);
+    if(usePose && detector){
+      try{
+        const poses = await detector.estimatePoses(video, {flipHorizontal:false});
+        if(poses[0]){
+          const scaleX = overlay.width/video.videoWidth, scaleY = overlay.height/video.videoHeight;
+          const raw = {};
+          ['left_shoulder','right_shoulder','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle']
+            .forEach(n=>{ const p=kp(poses[0].keypoints,n); raw[n]= p? {x:p.x*scaleX, y:p.y*scaleY} : null; });
+          const ls=smoothPt('ls',raw.left_shoulder), rs=smoothPt('rs',raw.right_shoulder);
+          const lh=smoothPt('lh',raw.left_hip), rh=smoothPt('rh',raw.right_hip);
+          const lk=smoothPt('lk',raw.left_knee), rk=smoothPt('rk',raw.right_knee);
+          const la=smoothPt('la',raw.left_ankle), ra=smoothPt('ra',raw.right_ankle);
+          if(ls && rs && lh && rh){
+            const shoulderW = {x: rs.x-ls.x, y: rs.y-ls.y};
+            const sleeveDrop = Math.abs(lh.y-ls.y)*0.22;
+            const ext = 0.14;
+            if(topTinted){
+              const shoulderMid={x:(ls.x+rs.x)/2,y:(ls.y+rs.y)/2};
+              const hipMid2={x:(lh.x+rh.x)/2,y:(lh.y+rh.y)/2};
+              const w = Math.hypot(shoulderW.x,shoulderW.y)*1.55;
+              const h2 = Math.hypot(hipMid2.x-shoulderMid.x, hipMid2.y-shoulderMid.y)*1.35;
+              const angle = Math.atan2(shoulderW.y, shoulderW.x);
+              const center = {x:(shoulderMid.x+hipMid2.x)/2, y:(shoulderMid.y+hipMid2.y)/2 - h2*0.05};
+              drawImageFitted(topTinted, center, angle, w, h2);
+            } else {
+              const shirt = [
+                {x: ls.x - shoulderW.x*ext, y: ls.y - shoulderW.y*ext},
+                {x: rs.x + shoulderW.x*ext, y: rs.y + shoulderW.y*ext},
+                {x: rs.x, y: rs.y + sleeveDrop},
+                rh, lh,
+                {x: ls.x, y: ls.y + sleeveDrop}
+              ];
+              drawPolygon(shirt, document.getElementById('topColor').value);
+            }
+          }
+          if(lh && rh){
+            const hipMid = {x:(lh.x+rh.x)/2, y:(lh.y+rh.y)/2};
+            const leftEnd = la || lk, rightEnd = ra || rk;
+            if(bottomTinted && (leftEnd || rightEnd)){
+              const legBottomMid = {
+                x:((leftEnd?leftEnd.x:hipMid.x)+(rightEnd?rightEnd.x:hipMid.x))/2,
+                y:((leftEnd?leftEnd.y:hipMid.y)+(rightEnd?rightEnd.y:hipMid.y))/2
+              };
+              const hipW = Math.hypot(rh.x-lh.x, rh.y-lh.y);
+              const w = hipW*1.6;
+              const h2 = Math.hypot(legBottomMid.x-hipMid.x, legBottomMid.y-hipMid.y)*1.15;
+              const angle = Math.atan2(rh.y-lh.y, rh.x-lh.x);
+              const center = {x:(hipMid.x+legBottomMid.x)/2, y:(hipMid.y+legBottomMid.y)/2};
+              drawImageFitted(bottomTinted, center, angle, w, h2);
+            } else {
+              if(leftEnd){
+                const inner = {x: hipMid.x - (hipMid.x-leftEnd.x)*0.15, y: leftEnd.y};
+                drawPolygon([lh, hipMid, inner, leftEnd], document.getElementById('bottomColor').value);
+              }
+              if(rightEnd){
+                const inner = {x: hipMid.x - (hipMid.x-rightEnd.x)*0.15, y: rightEnd.y};
+                drawPolygon([rh, hipMid, inner, rightEnd], document.getElementById('bottomColor').value);
+              }
+            }
+          }
+        }
+      }catch(e){ /* skip frame on error */ }
+    } else {
+      drawManual();
+    }
+  }
+  requestAnimationFrame(poseLoop);
+}
+
+document.getElementById('modeBtn').onclick = ()=>{
+  if(poseFailed && !detector){ status.textContent='الكشف التلقائي غير متاح على هذا الجهاز.'; return; }
+  usePose = !usePose;
+  modeBadge.textContent = usePose ? 'وضع: تلقائي' : 'وضع: يدوي';
+  hintText.textContent = usePose ? 'قف بحيث يظهر جسمك بالكامل تقريبًا في الإطار' : 'اسحب المربعات لتناسب جسمك';
+};
+
+/* ---------- camera ---------- */
+const flipWrap = document.getElementById('flipWrap');
+const guide = document.getElementById('guide');
+let currentFacing = 'user';
+let currentStream = null;
+
+function applyMirror(){
+  flipWrap.classList.toggle('mirror', currentFacing==='user');
+}
+
+async function openCamera(facing){
+  if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
+  status.textContent='جارِ طلب إذن الكاميرا...';
+  const constraints = {
+    audio:false,
+    video:{
+      facingMode: {ideal: facing},
+      width:{ideal:720}, height:{ideal:1280},
+      aspectRatio:{ideal:0.75},
+      frameRate:{ideal:30}
+    }
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  currentStream = stream;
+  currentFacing = facing;
+  applyMirror();
+  video.srcObject = stream;
+  await new Promise(res=>{ video.onloadedmetadata = res; });
+  resizeCanvas();
+  status.textContent='الكاميرا تعمل — قف بحيث يظهر جسمك كاملاً داخل الإطار المتقطع.';
+}
+
+document.getElementById('startBtn').onclick = async ()=>{
+  try{
+    await openCamera(currentFacing);
+    guide.style.display = detector ? 'none' : 'block';
+    await initPose();
+    guide.style.display='none';
+    poseLoop();
+  }catch(err){
+    status.textContent='تعذر الوصول إلى الكاميرا. تأكد من منح الإذن من إعدادات المتصفح، ومن استخدام رابط https.';
+  }
+};
+
+document.getElementById('camBtn').onclick = async ()=>{
+  if(!currentStream){ status.textContent='شغّل الكاميرا أولاً.'; return; }
+  try{
+    await openCamera(currentFacing==='user' ? 'environment' : 'user');
+  }catch(e){
+    status.textContent='تعذر تبديل الكاميرا على هذا الجهاز.';
+  }
+};
+
+function handleOrientation(){ setTimeout(resizeCanvas, 250); }
+window.addEventListener('orientationchange', handleOrientation);
+if(screen.orientation) screen.orientation.addEventListener('change', handleOrientation);
+
+/* ---------- snapshot ---------- */
+document.getElementById('snapBtn').onclick = ()=>{
+  if(!video.srcObject){ status.textContent='شغّل الكاميرا أولاً.'; return; }
+  const tmp = document.createElement('canvas');
+  tmp.width = overlay.clientWidth; tmp.height = overlay.clientHeight;
+  const tctx = tmp.getContext('2d');
+  const vw=video.videoWidth, vh=video.videoHeight;
+  const scale = Math.max(tmp.width/vw, tmp.height/vh);
+  const dw=vw*scale, dh=vh*scale;
+  if(currentFacing==='user'){ tctx.translate(tmp.width,0); tctx.scale(-1,1); }
+  tctx.drawImage(video, (tmp.width-dw)/2, (tmp.height-dh)/2, dw, dh);
+  tctx.drawImage(overlay, 0, 0, tmp.width, tmp.height);
+  tctx.setTransform(1,0,0,1,0,0);
+  const dl = document.getElementById('dl');
+  dl.href = tmp.toDataURL('image/png');
+  dl.click();
+  status.textContent='تم حفظ الصورة.';
+};
+
+/* ---------- color harmony ---------- */
+function hexToHsl(hex){
+  let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if(max===min){h=s=0;}
+  else{
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      case b: h=(r-g)/d + 4; break;
+    }
+    h/=6;
+  }
+  return [h*360,s*100,l*100];
+}
+function hslToHex(h,s,l){
+  s/=100; l/=100;
+  const c=(1-Math.abs(2*l-1))*s;
+  const x=c*(1-Math.abs((h/60)%2-1));
+  const m=l-c/2;
+  let r,g,b;
+  if(h<60){r=c;g=x;b=0;} else if(h<120){r=x;g=c;b=0;} else if(h<180){r=0;g=c;b=x;}
+  else if(h<240){r=0;g=x;b=c;} else if(h<300){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
+  const toHex=v=>Math.round((v+m)*255).toString(16).padStart(2,'0');
+  return '#'+toHex(r)+toHex(g)+toHex(b);
+}
+function updateHarmony(){
+  const base = document.getElementById('topColor').value;
+  const [h,s,l] = hexToHsl(base);
+  const combos = [
+    {name:'مكمل', h:(h+180)%360},
+    {name:'ثلاثي 1', h:(h+120)%360},
+    {name:'ثلاثي 2', h:(h+240)%360},
+    {name:'متجانس 1', h:(h+30)%360},
+    {name:'متجانس 2', h:(h-30+360)%360},
+  ];
+  const box = document.getElementById('harmony');
+  box.innerHTML='';
+  combos.forEach(c=>{
+    const hex = hslToHex(c.h, Math.max(s,40), Math.min(Math.max(l,35),70));
+    const item = document.createElement('div');
+    item.className='h-item';
+    item.innerHTML = `<div class="h-chip" style="background:${hex}"></div><span>${c.name}</span>`;
+    item.onclick = ()=>{ const bc=document.getElementById('bottomColor'); bc.value=hex; bc.dispatchEvent(new Event('input')); };
+    box.appendChild(item);
+  });
+}
+document.getElementById('topColor').addEventListener('input', e=>{
+  boxes.top.color = e.target.value;
+  retint('top');
+  updateHarmony();
+});
+document.getElementById('bottomColor').addEventListener('input', e=>{
+  boxes.bottom.color = e.target.value;
+  retint('bottom');
+});
+updateHarmony();
+</script>
+</body>
+</html>
