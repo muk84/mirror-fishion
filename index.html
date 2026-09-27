@@ -31,9 +31,10 @@
   p.sub{color:var(--muted); font-size:.85rem; margin:0 0 8px; text-align:center; max-width:520px;}
   .stage{
     position:relative; width:100%; max-width:480px;
+    height:calc(min(100vw - 32px, 480px) * 4 / 3);
+    flex-shrink:0;
     background:#000; border-radius:16px; overflow:hidden; border:1px solid var(--border);
   }
-  .stage::before{ content:""; display:block; padding-top:133.333%; }
   .flip{position:absolute; inset:0; z-index:1;}
   video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; visibility:hidden;}
   canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
@@ -60,7 +61,7 @@
   .harmony{display:flex; gap:8px; flex-wrap:wrap;}
   .h-item{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:.65rem; color:var(--muted); cursor:pointer;}
   .h-chip{width:38px; height:38px; border-radius:10px; border:1px solid var(--border);}
-  #status{font-size:.75rem; color:var(--muted); text-align:center; min-height:16px;}
+  #statusEl{font-size:.75rem; color:var(--muted); text-align:center; min-height:16px;}
   a#dl{display:none;}
 </style>
 </head>
@@ -113,17 +114,17 @@
     <div class="harmony" id="harmony"></div>
   </div>
 
-  <div id="status"></div>
+  <div id="statusEl"></div>
 </div>
 
 <a id="dl" download="outfit-preview.png"></a>
-<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 4</div>
+<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 5</div>
 
 <script>
 const video = document.getElementById('video');
 const overlay = document.getElementById('overlay');
 const ctx = overlay.getContext('2d');
-const status = document.getElementById('status');
+const statusEl = document.getElementById('status');
 const modeBadge = document.getElementById('modeBadge');
 const hintText = document.getElementById('hintText');
 const palette = ['#3b5b8c','#c0392b','#27ae60','#f1c40f','#8e44ad','#2c3e50','#e67e22','#ecf0f1','#1abc9c','#7f1d1d'];
@@ -212,7 +213,7 @@ function loadClothingImage(file, which){
   img.onload = ()=>{
     if(which==='top') topImgRaw=img; else bottomImgRaw=img;
     retint(which);
-    status.textContent='تم إضافة صورة الملابس — يمكنك الآن تغيير لونها من منتقي الألوان.';
+    statusEl.textContent='تم إضافة صورة الملابس — يمكنك الآن تغيير لونها من منتقي الألوان.';
   };
   img.src = URL.createObjectURL(file);
 }
@@ -305,7 +306,7 @@ async function initPose(){
     usePose = false; poseFailed = true;
     modeBadge.textContent='وضع: يدوي';
     hintText.textContent='تعذر تحميل الكشف التلقائي — اسحب المربعات يدويًا';
-    status.textContent='تعذر تحميل نموذج الكشف التلقائي، تم التفعيل التلقائي للوضع اليدوي.';
+    statusEl.textContent='تعذر تحميل نموذج الكشف التلقائي، تم التفعيل التلقائي للوضع اليدوي.';
   }
 }
 
@@ -401,7 +402,7 @@ async function poseLoop(){
 }
 
 document.getElementById('modeBtn').onclick = ()=>{
-  if(poseFailed && !detector){ status.textContent='الكشف التلقائي غير متاح على هذا الجهاز.'; return; }
+  if(poseFailed && !detector){ statusEl.textContent='الكشف التلقائي غير متاح على هذا الجهاز.'; return; }
   usePose = !usePose;
   modeBadge.textContent = usePose ? 'وضع: تلقائي' : 'وضع: يدوي';
   hintText.textContent = usePose ? 'قف بحيث يظهر جسمك بالكامل تقريبًا في الإطار' : 'اسحب المربعات لتناسب جسمك';
@@ -415,7 +416,7 @@ let currentStream = null;
 
 async function openCamera(facing){
   if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
-  status.textContent='جارِ طلب إذن الكاميرا...';
+  statusEl.textContent='جارِ طلب إذن الكاميرا...';
   const constraints = {
     audio:false,
     video:{
@@ -431,7 +432,7 @@ async function openCamera(facing){
   video.srcObject = stream;
   await new Promise(res=>{ video.onloadedmetadata = res; });
   setStageSize();
-  status.textContent='الكاميرا تعمل — قف بحيث يظهر جسمك كاملاً داخل الإطار المتقطع.';
+  statusEl.textContent='الكاميرا تعمل — قف بحيث يظهر جسمك كاملاً داخل الإطار المتقطع.';
 }
 
 document.getElementById('startBtn').onclick = async ()=>{
@@ -442,16 +443,16 @@ document.getElementById('startBtn').onclick = async ()=>{
     guide.style.display='none';
     poseLoop();
   }catch(err){
-    status.textContent='تعذر الوصول إلى الكاميرا. تأكد من منح الإذن من إعدادات المتصفح، ومن استخدام رابط https.';
+    statusEl.textContent='تعذر الوصول إلى الكاميرا. تأكد من منح الإذن من إعدادات المتصفح، ومن استخدام رابط https.';
   }
 };
 
 document.getElementById('camBtn').onclick = async ()=>{
-  if(!currentStream){ status.textContent='شغّل الكاميرا أولاً.'; return; }
+  if(!currentStream){ statusEl.textContent='شغّل الكاميرا أولاً.'; return; }
   try{
     await openCamera(currentFacing==='user' ? 'environment' : 'user');
   }catch(e){
-    status.textContent='تعذر تبديل الكاميرا على هذا الجهاز.';
+    statusEl.textContent='تعذر تبديل الكاميرا على هذا الجهاز.';
   }
 };
 
@@ -462,7 +463,7 @@ document.getElementById('stopBtn').onclick = ()=>{
   ctx.clearRect(0,0,overlay.width,overlay.height);
   modeBadge.textContent = 'وضع: --';
   hintText.textContent = 'اضغط "تشغيل الكاميرا" للبدء';
-  status.textContent = 'تم إيقاف الكاميرا.';
+  statusEl.textContent = 'تم إيقاف الكاميرا.';
 };
 
 function handleOrientation(){ setTimeout(setStageSize, 250); }
@@ -471,11 +472,11 @@ if(screen.orientation) screen.orientation.addEventListener('change', handleOrien
 
 /* ---------- snapshot ---------- */
 document.getElementById('snapBtn').onclick = ()=>{
-  if(!video.srcObject){ status.textContent='شغّل الكاميرا أولاً.'; return; }
+  if(!video.srcObject){ statusEl.textContent='شغّل الكاميرا أولاً.'; return; }
   const dl = document.getElementById('dl');
   dl.href = overlay.toDataURL('image/png');
   dl.click();
-  status.textContent='تم حفظ الصورة.';
+  statusEl.textContent='تم حفظ الصورة.';
 };
 
 /* ---------- color harmony ---------- */
