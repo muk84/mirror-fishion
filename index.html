@@ -66,6 +66,10 @@
   .swgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
   .swgrid .sw{width:100%; aspect-ratio:1; height:auto; border-radius:14px;}
   .custom{display:flex; align-items:center; gap:10px; font-size:.8rem; color:var(--muted);}
+  .lbl{font-size:.75rem; color:var(--muted); margin-bottom:-6px;}
+  .fam{display:grid; grid-template-columns:repeat(5,1fr); gap:10px;}
+  .fam .sw{width:100%; aspect-ratio:1; height:auto; border-radius:50%;}
+  .fam .sw.selected{transform:scale(1.12); box-shadow:0 0 0 3px rgba(255,255,255,.35);}
   a#dl{display:none;}
 </style>
 </head>
@@ -127,6 +131,9 @@
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true">
   <div class="drawer-head"><span id="drawerTitle">🎨 الألوان</span><button class="small" id="drawerClose">✕ إغلاق</button></div>
+  <div class="lbl">اللون الأساسي</div>
+  <div class="fam" id="famRow"></div>
+  <div class="lbl">التدرجات (من الفاتح إلى الداكن)</div>
   <div class="swgrid" id="drawerSw"></div>
   <div class="custom"><span>لون مخصص:</span>
     <input type="color" id="topColor" value="#3b5b8c">
@@ -134,7 +141,7 @@
   </div>
 </aside>
 
-<div class="ver">إصدار 9</div>
+<div class="ver">إصدار 10</div>
 
 <script>
 const video = document.getElementById('video');
@@ -143,38 +150,59 @@ const ctx = overlay.getContext('2d');
 const statusEl = document.getElementById('status');
 const modeBadge = document.getElementById('modeBadge');
 const hintText = document.getElementById('hintText');
-const palette = ['#3b5b8c','#c0392b','#27ae60','#f1c40f','#8e44ad','#2c3e50','#e67e22','#ecf0f1','#1abc9c','#7f1d1d',
-  '#000000','#6b7280','#f5deb3','#ff6b9d','#0ea5e9','#84cc16','#a16207','#4c1d95','#be123c','#14532d'];
-let drawerTarget='top';
+const families=[[0,72],[24,85],[45,90],[58,85],[88,65],[140,60],[172,65],[195,80],[215,75],[245,65],[275,60],[330,75],[0,0]]; // [hue,sat] والأخير رمادي
+const lights=[93,82,70,58,47,37,28,19,11];
+const famHex=i=>hslToHex(families[i][0],families[i][1],families[i][1]?50:50);
+let drawerTarget='top', famIdx=8;
 function refreshDots(){
   ['top','bottom'].forEach(k=>{ document.getElementById(k+'Dot').style.background=document.getElementById(k+'Color').value; });
+}
+function nearestFamily(hex){
+  const [h,sat]=hexToHsl(hex);
+  if(sat<12) return families.length-1;
+  let best=0,bd=999;
+  for(let i=0;i<families.length-1;i++){ const d=Math.min(Math.abs(families[i][0]-h),360-Math.abs(families[i][0]-h)); if(d<bd){bd=d;best=i;} }
+  return best;
+}
+function renderShades(){
+  const c=document.getElementById('drawerSw'); c.innerHTML='';
+  const cur=document.getElementById(drawerTarget+'Color').value.toLowerCase();
+  const [h,sat]=families[famIdx];
+  lights.forEach(l=>{
+    const hex=hslToHex(h,sat,l);
+    const d=document.createElement('div');
+    d.className='sw'+(hex===cur?' selected':''); d.style.background=hex;
+    d.onclick=()=>{
+      const inp=document.getElementById(drawerTarget+'Color');
+      inp.value=hex; inp.dispatchEvent(new Event('input'));
+      c.querySelectorAll('.sw').forEach(x=>x.classList.toggle('selected',x===d));
+    };
+    c.appendChild(d);
+  });
+  document.querySelectorAll('#famRow .sw').forEach((x,i)=>x.classList.toggle('selected',i===famIdx));
 }
 function openDrawer(which){
   drawerTarget=which;
   document.getElementById('drawerTitle').textContent = which==='top' ? '🎨 لون القطعة العلوية' : '🎨 لون القطعة السفلية';
   document.getElementById('topColor').style.display = which==='top' ? '' : 'none';
   document.getElementById('bottomColor').style.display = which==='bottom' ? '' : 'none';
-  const cur=document.getElementById(which+'Color').value.toLowerCase();
-  document.querySelectorAll('#drawerSw .sw').forEach(d=>d.classList.toggle('selected', d.dataset.c===cur));
+  famIdx=nearestFamily(document.getElementById(which+'Color').value);
+  renderShades();
   document.body.classList.add('drawer-open');
 }
 function closeDrawer(){ document.body.classList.remove('drawer-open'); }
 (function buildDrawer(){
-  const c=document.getElementById('drawerSw');
-  palette.forEach(color=>{
+  const fr=document.getElementById('famRow');
+  families.forEach((f,i)=>{
     const d=document.createElement('div');
-    d.className='sw'; d.style.background=color; d.dataset.c=color;
-    d.onclick=()=>{
-      const inp=document.getElementById(drawerTarget+'Color');
-      inp.value=color; inp.dispatchEvent(new Event('input'));
-      c.querySelectorAll('.sw').forEach(x=>x.classList.toggle('selected',x===d));
-    };
-    c.appendChild(d);
+    d.className='sw'; d.style.background=f[1]?hslToHex(f[0],f[1],50):'#808080';
+    d.onclick=()=>{ famIdx=i; renderShades(); };
+    fr.appendChild(d);
   });
   document.querySelectorAll('.colorbtn').forEach(b=>b.onclick=()=>openDrawer(b.dataset.target));
   document.getElementById('scrim').onclick=closeDrawer;
   document.getElementById('drawerClose').onclick=closeDrawer;
-  ['topColor','bottomColor'].forEach(id=>document.getElementById(id).addEventListener('input',refreshDots));
+  ['topColor','bottomColor'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{refreshDots(); if(document.body.classList.contains('drawer-open')) renderShades();}));
   refreshDots();
 })();
 
