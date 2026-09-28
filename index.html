@@ -4,70 +4,76 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>مرآة الأناقة - تنسيق الملابس</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
 <style>
-  :root{
-    --bg:#0f1115; --panel:#181b22; --panel2:#20242e; --text:#f2f3f5; --muted:#9aa1ad;
-    --accent:#e0a458; --border:#2c3140;
-    padding-top: env(safe-area-inset-top,0px);
-    padding-bottom: env(safe-area-inset-bottom,0px);
-    box-sizing:border-box;
-  }
-  @media (prefers-color-scheme: light){
-    :root:not([data-theme="dark"]){
-      --bg:#f4f5f7; --panel:#ffffff; --panel2:#eef0f3; --text:#1b1e24; --muted:#5b6270; --border:#dfe2e8;
-    }
-  }
-  *{box-sizing:border-box;}
-  html,body{height:100%;}
-  body{
-    margin:0; background:var(--bg); color:var(--text);
+  :root{color-scheme:dark;
+    --bg1:#0b0d14; --bg2:#1a1330; --card:rgba(255,255,255,.06); --card-b:rgba(255,255,255,.12);
+    --text:#f4f4f8; --muted:#a3a8bd; --accent:#f5b74e; --accent2:#ff6b9d;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; min-height:100%; color:var(--text);
     font-family:"Tahoma","Segoe UI",system-ui,sans-serif;
-    display:flex; flex-direction:column; align-items:center;
-    padding:16px; gap:16px;
-  }
-  h1{font-size:1.15rem; margin:4px 0 0; text-align:center;}
-  p.sub{color:var(--muted); font-size:.85rem; margin:0 0 8px; text-align:center; max-width:520px;}
-  .stage{
-    position:relative; width:100%; max-width:480px;
-    height:calc(min(100vw - 32px, 480px) * 4 / 3);
-    flex-shrink:0;
-    background:#000; border-radius:16px; overflow:hidden; border:1px solid var(--border);
-  }
+    background:radial-gradient(900px 500px at 85% -10%,#3b1f6b55,transparent),radial-gradient(700px 400px at -10% 30%,#ff6b9d22,transparent),linear-gradient(160deg,var(--bg1),var(--bg2));
+    background-attachment:fixed;
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px));}
+  header{text-align:center; max-width:480px;}
+  h1{font-size:1.5rem; margin:4px 0 2px; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  p.sub{color:var(--muted); font-size:.8rem; margin:0; line-height:1.6;}
+  .stage{position:relative; width:100%; max-width:480px; height:calc(min(100vw - 28px,480px)*4/3); flex-shrink:0;
+    background:#000; border-radius:24px; overflow:hidden; border:1px solid var(--card-b);
+    box-shadow:0 20px 50px -15px #000c, 0 0 0 1px #ffffff08 inset;}
   .flip{position:absolute; inset:0; z-index:1;}
   video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; visibility:hidden;}
-  canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  canvas{position:absolute; inset:0; width:100%; height:100%;}
   #overlay{cursor:grab; z-index:2;}
-  .guide{position:absolute; inset:6%; border:2px dashed rgba(255,255,255,.35); border-radius:20px; pointer-events:none; z-index:3;}
-  .hint{position:absolute; bottom:8px; right:8px; left:8px; text-align:center; font-size:.7rem; color:#ddd; background:rgba(0,0,0,.45); padding:4px 8px; border-radius:8px; z-index:4;}
-  .badge{position:absolute; top:8px; right:8px; font-size:.65rem; background:rgba(0,0,0,.5); color:#fff; padding:3px 8px; border-radius:20px; z-index:4;}
-  .panel{
-    width:100%; max-width:480px; background:var(--panel); border:1px solid var(--border);
-    border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px;
-  }
+  .guide{position:absolute; inset:7%; border:2px dashed rgba(255,255,255,.3); border-radius:26px; pointer-events:none; z-index:3;}
+  .hint{position:absolute; bottom:10px; right:10px; left:10px; text-align:center; font-size:.72rem; color:#fff; background:rgba(10,10,20,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:6px 10px; border-radius:12px; z-index:4;}
+  .badge{position:absolute; top:10px; right:10px; font-size:.68rem; background:rgba(10,10,20,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); color:#fff; padding:4px 10px; border-radius:20px; z-index:4;}
+  .panel{width:100%; max-width:480px; display:flex; flex-direction:column; gap:12px;}
+  .card{background:var(--card); border:1px solid var(--card-b); border-radius:20px; padding:14px; display:flex; flex-direction:column; gap:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
+  .card h2{margin:0; font-size:.85rem; color:var(--muted); font-weight:600;}
   .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
-  label{font-size:.8rem; color:var(--muted); min-width:60px;}
-  .swatches{display:flex; gap:6px; flex-wrap:wrap;}
-  .sw{width:26px; height:26px; border-radius:50%; border:2px solid var(--border); cursor:pointer;}
-  .sw.selected{border-color:var(--accent); transform:scale(1.15);}
-  input[type=color]{width:36px; height:36px; border:none; border-radius:8px; background:none; padding:0; cursor:pointer;}
-  button{
-    background:var(--accent); color:#221703; border:none; border-radius:10px; padding:10px 14px;
-    font-weight:bold; cursor:pointer; font-size:.85rem;
-  }
-  button.secondary{background:var(--panel2); color:var(--text); border:1px solid var(--border);}
-  button.active{outline:2px solid var(--accent);}
-  .harmony{display:flex; gap:8px; flex-wrap:wrap;}
-  .h-item{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:.65rem; color:var(--muted); cursor:pointer;}
-  .h-chip{width:38px; height:38px; border-radius:10px; border:1px solid var(--border);}
+  .btns{display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
+  button,.filebtn{font-family:inherit; border:none; border-radius:14px; padding:12px 10px; font-weight:700; cursor:pointer; font-size:.82rem; color:var(--text);
+    background:rgba(255,255,255,.09); border:1px solid var(--card-b); text-align:center; transition:transform .12s, background .2s;}
+  button:active,.filebtn:active{transform:scale(.96);}
+  button.primary{grid-column:1/-1; color:#2a1a02; border:none; font-size:.95rem; padding:14px;
+    background:linear-gradient(90deg,var(--accent),#ffd27a); box-shadow:0 8px 24px -8px #f5b74e99;}
+  .swatches{display:flex; gap:8px; flex-wrap:wrap; flex:1;}
+  .sw{width:28px; height:28px; border-radius:50%; border:2px solid rgba(255,255,255,.25); cursor:pointer; transition:transform .15s;}
+  .sw.selected{border-color:#fff; transform:scale(1.18);}
+  input[type=color]{width:42px; height:42px; border:2px solid var(--card-b); border-radius:12px; background:none; padding:2px; cursor:pointer;}
+  input[type=file]{display:none;}
+  .filebtn{padding:8px 12px; font-size:.75rem; display:inline-block;}
+  .small{padding:8px 12px; font-size:.75rem;}
+  .harmony{display:flex; gap:10px; flex-wrap:wrap;}
+  .h-item{display:flex; flex-direction:column; align-items:center; gap:5px; font-size:.68rem; color:var(--muted); cursor:pointer;}
+  .h-chip{width:44px; height:44px; border-radius:14px; border:2px solid var(--card-b); transition:transform .15s;}
+  .h-item:active .h-chip{transform:scale(.9);}
   #status{font-size:.75rem; color:var(--muted); text-align:center; min-height:16px;}
+  .ver{font-size:.62rem; color:#6b7090; text-align:center;}
+  .colorbtn{display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-start;}
+  .dot{width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.5); display:inline-block;}
+  .scrim{position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s; z-index:90;}
+  .drawer{position:fixed; top:0; right:0; height:100%; width:min(310px,84vw); z-index:100; transform:translateX(105%);
+    transition:transform .3s cubic-bezier(.2,.8,.2,1); background:rgba(20,16,38,.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border-left:1px solid var(--card-b); padding:calc(16px + env(safe-area-inset-top,0px)) 16px 24px; display:flex; flex-direction:column; gap:16px; overflow-y:auto;}
+  body.drawer-open .drawer{transform:none;}
+  body.drawer-open .scrim{opacity:1; pointer-events:auto;}
+  .drawer-head{display:flex; align-items:center; justify-content:space-between; font-weight:700;}
+  .swgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
+  .swgrid .sw{width:100%; aspect-ratio:1; height:auto; border-radius:14px;}
+  .custom{display:flex; align-items:center; gap:10px; font-size:.8rem; color:var(--muted);}
   a#dl{display:none;}
 </style>
 </head>
 <body>
-<h1>👗 مرآة الأناقة</h1>
-<p class="sub">يعمل بشكل جيد على شاشة الهاتف. شغّل الكاميرا، ويمكنك التبديل بين الأمامية والخلفية، وقف داخل الإطار المتقطع بحيث يظهر جسمك كاملاً بوضوح ليتعرف عليه التطبيق تلقائيًا.</p>
+<header>
+  <h1>👗 مرآة الأناقة</h1>
+  <p class="sub">جرّب الملابس مباشرة على الكاميرا، وبدّل ألوانها وانسّقها بذكاء.</p>
+</header>
 
 <div class="stage" id="stage">
   <div class="flip" id="flipWrap">
@@ -80,45 +86,55 @@
 </div>
 
 <div class="panel">
-  <div class="row">
-    <button id="startBtn">📷 تشغيل الكاميرا</button>
-    <button id="stopBtn" class="secondary">⏹ إيقاف الكاميرا</button>
-    <button id="snapBtn" class="secondary">📸 حفظ صورة</button>
-    <button id="modeBtn" class="secondary">🔄 تبديل الوضع</button>
-    <button id="camBtn" class="secondary">🤳 أمامية/خلفية</button>
+  <div class="card">
+    <div class="btns">
+      <button id="startBtn" class="primary">📷 تشغيل الكاميرا</button>
+      <button id="camBtn">🤳 أمامية / خلفية</button>
+      <button id="modeBtn">🔄 تلقائي / يدوي</button>
+      <button id="snapBtn">📸 حفظ صورة</button>
+      <button id="stopBtn">⏹ إيقاف</button>
+    </div>
+    <div id="status"></div>
   </div>
 
-  <div class="row">
-    <label>القطعة العلوية</label>
-    <input type="color" id="topColor" value="#3b5b8c">
-    <div class="swatches" id="topSw"></div>
-  </div>
-  <div class="row">
-    <label>صورة القطعة</label>
-    <input type="file" accept="image/*" id="topImgInput" style="max-width:150px;font-size:.7rem;color:var(--muted);">
-    <button id="topImgClear" class="secondary" style="padding:6px 10px;font-size:.7rem;">إزالة</button>
-  </div>
-  <div class="row">
-    <label>القطعة السفلية</label>
-    <input type="color" id="bottomColor" value="#22262e">
-    <div class="swatches" id="bottomSw"></div>
-  </div>
-  <div class="row">
-    <label>صورة القطعة</label>
-    <input type="file" accept="image/*" id="bottomImgInput" style="max-width:150px;font-size:.7rem;color:var(--muted);">
-    <button id="bottomImgClear" class="secondary" style="padding:6px 10px;font-size:.7rem;">إزالة</button>
+  <div class="card">
+    <h2>👕 القطعة العلوية</h2>
+    <div class="row"><button class="colorbtn" data-target="top"><span class="dot" id="topDot"></span> اختر لون القميص</button></div>
+    <div class="row">
+      <label class="filebtn" for="topImgInput">📁 رفع صورة قميص</label>
+      <input type="file" accept="image/*" id="topImgInput">
+      <button id="topImgClear" class="small">إزالة</button>
+    </div>
   </div>
 
-  <div>
-    <label>اقتراحات تنسيق الألوان (بناءً على اللون العلوي)</label>
+  <div class="card">
+    <h2>👖 القطعة السفلية</h2>
+    <div class="row"><button class="colorbtn" data-target="bottom"><span class="dot" id="bottomDot"></span> اختر لون البنطال</button></div>
+    <div class="row">
+      <label class="filebtn" for="bottomImgInput">📁 رفع صورة بنطال</label>
+      <input type="file" accept="image/*" id="bottomImgInput">
+      <button id="bottomImgClear" class="small">إزالة</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🎨 اقتراحات تنسيق الألوان (اضغط لتطبيقها على السفلية)</h2>
     <div class="harmony" id="harmony"></div>
   </div>
-
-  <div id="status"></div>
 </div>
 
 <a id="dl" download="outfit-preview.png"></a>
-<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 7</div>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head"><span id="drawerTitle">🎨 الألوان</span><button class="small" id="drawerClose">✕ إغلاق</button></div>
+  <div class="swgrid" id="drawerSw"></div>
+  <div class="custom"><span>لون مخصص:</span>
+    <input type="color" id="topColor" value="#3b5b8c">
+    <input type="color" id="bottomColor" value="#22262e" style="display:none">
+  </div>
+</aside>
+
+<div class="ver">إصدار 9</div>
 
 <script>
 const video = document.getElementById('video');
@@ -127,23 +143,40 @@ const ctx = overlay.getContext('2d');
 const statusEl = document.getElementById('status');
 const modeBadge = document.getElementById('modeBadge');
 const hintText = document.getElementById('hintText');
-const palette = ['#3b5b8c','#c0392b','#27ae60','#f1c40f','#8e44ad','#2c3e50','#e67e22','#ecf0f1','#1abc9c','#7f1d1d'];
-
-function buildSwatches(containerId, input){
-  const c = document.getElementById(containerId);
+const palette = ['#3b5b8c','#c0392b','#27ae60','#f1c40f','#8e44ad','#2c3e50','#e67e22','#ecf0f1','#1abc9c','#7f1d1d',
+  '#000000','#6b7280','#f5deb3','#ff6b9d','#0ea5e9','#84cc16','#a16207','#4c1d95','#be123c','#14532d'];
+let drawerTarget='top';
+function refreshDots(){
+  ['top','bottom'].forEach(k=>{ document.getElementById(k+'Dot').style.background=document.getElementById(k+'Color').value; });
+}
+function openDrawer(which){
+  drawerTarget=which;
+  document.getElementById('drawerTitle').textContent = which==='top' ? '🎨 لون القطعة العلوية' : '🎨 لون القطعة السفلية';
+  document.getElementById('topColor').style.display = which==='top' ? '' : 'none';
+  document.getElementById('bottomColor').style.display = which==='bottom' ? '' : 'none';
+  const cur=document.getElementById(which+'Color').value.toLowerCase();
+  document.querySelectorAll('#drawerSw .sw').forEach(d=>d.classList.toggle('selected', d.dataset.c===cur));
+  document.body.classList.add('drawer-open');
+}
+function closeDrawer(){ document.body.classList.remove('drawer-open'); }
+(function buildDrawer(){
+  const c=document.getElementById('drawerSw');
   palette.forEach(color=>{
-    const d = document.createElement('div');
-    d.className='sw'; d.style.background=color;
-    d.onclick=()=>{ input.value=color; input.dispatchEvent(new Event('input')); markSelected(containerId,d); };
+    const d=document.createElement('div');
+    d.className='sw'; d.style.background=color; d.dataset.c=color;
+    d.onclick=()=>{
+      const inp=document.getElementById(drawerTarget+'Color');
+      inp.value=color; inp.dispatchEvent(new Event('input'));
+      c.querySelectorAll('.sw').forEach(x=>x.classList.toggle('selected',x===d));
+    };
     c.appendChild(d);
   });
-}
-function markSelected(containerId, el){
-  document.getElementById(containerId).querySelectorAll('.sw').forEach(s=>s.classList.remove('selected'));
-  el.classList.add('selected');
-}
-buildSwatches('topSw', document.getElementById('topColor'));
-buildSwatches('bottomSw', document.getElementById('bottomColor'));
+  document.querySelectorAll('.colorbtn').forEach(b=>b.onclick=()=>openDrawer(b.dataset.target));
+  document.getElementById('scrim').onclick=closeDrawer;
+  document.getElementById('drawerClose').onclick=closeDrawer;
+  ['topColor','bottomColor'].forEach(id=>document.getElementById(id).addEventListener('input',refreshDots));
+  refreshDots();
+})();
 
 /* ---------- manual fallback boxes ---------- */
 function makeBox(x,y,w,h,color){ return {x,y,w,h,color}; }
@@ -287,7 +320,7 @@ let smooth={};
 function smoothPt(name, p){
   if(!p) return smooth[name];
   const prev = smooth[name];
-  const s = prev ? {x: prev.x*0.6+p.x*0.4, y: prev.y*0.6+p.y*0.4} : p;
+  const s = prev ? {x: prev.x*0.5+p.x*0.5, y: prev.y*0.5+p.y*0.5} : p;
   smooth[name]=s;
   return s;
 }
@@ -316,6 +349,16 @@ function kp(keypoints, name){
   return {x:p.x, y:p.y};
 }
 
+let latestPoses=[], detecting=false, lastDetect=0, loopsStarted=false;
+async function detectTick(){
+  if(usePose && detector && video.readyState>=2 && !detecting && performance.now()-lastDetect>45){
+    detecting=true;
+    try{ latestPoses = await detector.estimatePoses(video,{flipHorizontal:false}); }catch(e){}
+    lastDetect=performance.now(); detecting=false;
+  }
+  setTimeout(detectTick, 16);
+}
+
 function drawVideoFrame(){
   const vw=video.videoWidth, vh=video.videoHeight;
   if(!vw || !vh) return;
@@ -324,7 +367,7 @@ function drawVideoFrame(){
   ctx.drawImage(video, (overlay.width-dw)/2, (overlay.height-dh)/2, dw, dh);
 }
 
-async function poseLoop(){
+function poseLoop(){
   if(video.readyState>=2 && overlay.width>0){
     ctx.save();
     ctx.clearRect(0,0,overlay.width,overlay.height);
@@ -333,12 +376,14 @@ async function poseLoop(){
     drawVideoFrame();
     if(usePose && detector){
       try{
-        const poses = await detector.estimatePoses(video, {flipHorizontal:false});
+        const poses = latestPoses;
         if(poses[0]){
-          const scaleX = overlay.width/video.videoWidth, scaleY = overlay.height/video.videoHeight;
+          const vw=video.videoWidth, vh=video.videoHeight;
+          const sc=Math.max(overlay.width/vw, overlay.height/vh);
+          const ox=(overlay.width-vw*sc)/2, oy=(overlay.height-vh*sc)/2;
           const raw = {};
           ['left_shoulder','right_shoulder','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle']
-            .forEach(n=>{ const p=kp(poses[0].keypoints,n); raw[n]= p? {x:p.x*scaleX, y:p.y*scaleY} : null; });
+            .forEach(n=>{ const p=kp(poses[0].keypoints,n); raw[n]= p? {x:p.x*sc+ox, y:p.y*sc+oy} : null; });
           const ls=smoothPt('ls',raw.left_shoulder), rs=smoothPt('rs',raw.right_shoulder);
           const lh=smoothPt('lh',raw.left_hip), rh=smoothPt('rh',raw.right_hip);
           const lk=smoothPt('lk',raw.left_knee), rk=smoothPt('rk',raw.right_knee);
@@ -439,9 +484,9 @@ document.getElementById('startBtn').onclick = async ()=>{
   try{
     await openCamera(currentFacing);
     guide.style.display = detector ? 'none' : 'block';
-    await initPose();
+    if(!detector) await initPose(); else { usePose=true; modeBadge.textContent='وضع: تلقائي'; }
     guide.style.display='none';
-    poseLoop();
+    if(!loopsStarted){ loopsStarted=true; poseLoop(); detectTick(); }
   }catch(err){
     statusEl.textContent='تعذر الوصول إلى الكاميرا. تأكد من منح الإذن من إعدادات المتصفح، ومن استخدام رابط https.';
   }
