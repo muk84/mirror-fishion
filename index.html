@@ -38,7 +38,7 @@
   .flip{position:absolute; inset:0; z-index:1;}
   video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; visibility:hidden;}
   canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
-  #overlay{cursor:grab; touch-action:none; z-index:2;}
+  #overlay{cursor:grab; z-index:2;}
   .guide{position:absolute; inset:6%; border:2px dashed rgba(255,255,255,.35); border-radius:20px; pointer-events:none; z-index:3;}
   .hint{position:absolute; bottom:8px; right:8px; left:8px; text-align:center; font-size:.7rem; color:#ddd; background:rgba(0,0,0,.45); padding:4px 8px; border-radius:8px; z-index:4;}
   .badge{position:absolute; top:8px; right:8px; font-size:.65rem; background:rgba(0,0,0,.5); color:#fff; padding:3px 8px; border-radius:20px; z-index:4;}
@@ -61,7 +61,7 @@
   .harmony{display:flex; gap:8px; flex-wrap:wrap;}
   .h-item{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:.65rem; color:var(--muted); cursor:pointer;}
   .h-chip{width:38px; height:38px; border-radius:10px; border:1px solid var(--border);}
-  #statusEl{font-size:.75rem; color:var(--muted); text-align:center; min-height:16px;}
+  #status{font-size:.75rem; color:var(--muted); text-align:center; min-height:16px;}
   a#dl{display:none;}
 </style>
 </head>
@@ -114,11 +114,11 @@
     <div class="harmony" id="harmony"></div>
   </div>
 
-  <div id="statusEl"></div>
+  <div id="status"></div>
 </div>
 
 <a id="dl" download="outfit-preview.png"></a>
-<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 5</div>
+<div style="font-size:.65rem;color:#6b7280;text-align:center;">إصدار 7</div>
 
 <script>
 const video = document.getElementById('video');
