@@ -17,12 +17,12 @@
     background:radial-gradient(900px 500px at 85% -10%,#3b1f6b55,transparent),radial-gradient(700px 400px at -10% 30%,#ff6b9d22,transparent),linear-gradient(160deg,var(--bg1),var(--bg2));
     background-attachment:fixed;
     display:flex; flex-direction:column; align-items:center; gap:14px;
-    padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px));}
-  header{text-align:center; max-width:480px;}
-  h1{font-size:1.5rem; margin:4px 0 2px; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent;}
-  p.sub{color:var(--muted); font-size:.8rem; margin:0; line-height:1.6;}
-  .stage{position:relative; width:100%; max-width:480px; height:calc(min(100vw - 28px,480px)*4/3); flex-shrink:0;
-    background:#000; border-radius:24px; overflow:hidden; border:1px solid var(--card-b);
+    padding:calc(8px + env(safe-area-inset-top,0px)) 10px calc(14px + env(safe-area-inset-bottom,0px)); gap:8px;}
+  header{text-align:center; max-width:520px;}
+  h1{font-size:1.05rem; margin:0 0 2px; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  p.sub{color:var(--muted); font-size:.68rem; margin:0; line-height:1.4;}
+  .stage{position:relative; width:100%; max-width:520px; height:calc(min(100vw - 24px,520px)*16/9); flex-shrink:0;
+    background:#000; border-radius:22px; overflow:hidden; border:1px solid var(--card-b);
     box-shadow:0 20px 50px -15px #000c, 0 0 0 1px #ffffff08 inset;}
   .flip{position:absolute; inset:0; z-index:1;}
   video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; visibility:hidden;}
@@ -31,15 +31,24 @@
   .guide{position:absolute; inset:7%; border:2px dashed rgba(255,255,255,.3); border-radius:26px; pointer-events:none; z-index:3;}
   .hint{position:absolute; bottom:10px; right:10px; left:10px; text-align:center; font-size:.72rem; color:#fff; background:rgba(10,10,20,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:6px 10px; border-radius:12px; z-index:4;}
   .badge{position:absolute; top:10px; right:10px; font-size:.68rem; background:rgba(10,10,20,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); color:#fff; padding:4px 10px; border-radius:20px; z-index:4;}
-  .panel{width:100%; max-width:480px; display:flex; flex-direction:column; gap:12px;}
-  .card{background:var(--card); border:1px solid var(--card-b); border-radius:20px; padding:14px; display:flex; flex-direction:column; gap:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
-  .card h2{margin:0; font-size:.85rem; color:var(--muted); font-weight:600;}
-  .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
-  .btns{display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
-  button,.filebtn{font-family:inherit; border:none; border-radius:14px; padding:12px 10px; font-weight:700; cursor:pointer; font-size:.82rem; color:var(--text);
+  .panel{width:100%; max-width:520px; display:flex; flex-direction:column; gap:6px;}
+  .toolbar{display:flex; gap:6px; justify-content:center;}
+  .toolbar button{flex:1; max-width:64px; aspect-ratio:1; border-radius:16px; font-size:1.15rem; padding:0;
+    background:rgba(255,255,255,.09); border:1px solid var(--card-b); color:var(--text); cursor:pointer; transition:transform .12s;}
+  .toolbar button:active{transform:scale(.9);}
+  .toolbar button.on{background:linear-gradient(180deg,var(--accent),#ffd27a); color:#2a1a02;}
+  .pills{display:flex; gap:6px;}
+  .pill{flex:1; display:flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; border:none;
+    border-radius:14px; padding:9px 8px; font-weight:700; cursor:pointer; font-size:.78rem; color:var(--text);
+    background:var(--card); border:1px solid var(--card-b);}
+  .pill:active{transform:scale(.97);}
+  .card{background:var(--card); border:1px solid var(--card-b); border-radius:16px; padding:8px 10px; display:flex; flex-direction:column; gap:8px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
+  .card h2{margin:0; font-size:.72rem; color:var(--muted); font-weight:600;}
+  .row{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  button,.filebtn{font-family:inherit; border:none; border-radius:12px; padding:8px 10px; font-weight:700; cursor:pointer; font-size:.76rem; color:var(--text);
     background:rgba(255,255,255,.09); border:1px solid var(--card-b); text-align:center; transition:transform .12s, background .2s;}
   button:active,.filebtn:active{transform:scale(.96);}
-  button.primary{grid-column:1/-1; color:#2a1a02; border:none; font-size:.95rem; padding:14px;
+  button.primary{color:#2a1a02; border:none; font-size:.8rem; padding:9px;
     background:linear-gradient(90deg,var(--accent),#ffd27a); box-shadow:0 8px 24px -8px #f5b74e99;}
   .swatches{display:flex; gap:8px; flex-wrap:wrap; flex:1;}
   .sw{width:28px; height:28px; border-radius:50%; border:2px solid rgba(255,255,255,.25); cursor:pointer; transition:transform .15s;}
@@ -76,7 +85,6 @@
 <body>
 <header>
   <h1>👗 مرآة الأناقة</h1>
-  <p class="sub">جرّب الملابس مباشرة على الكاميرا، وبدّل ألوانها وانسّقها بذكاء.</p>
 </header>
 
 <div class="stage" id="stage">
@@ -90,44 +98,31 @@
 </div>
 
 <div class="panel">
-  <div class="card">
-    <div class="btns">
-      <button id="startBtn" class="primary">📷 تشغيل الكاميرا</button>
-      <button id="camBtn">🤳 أمامية / خلفية</button>
-      <button id="modeBtn">🔄 تلقائي / يدوي</button>
-      <button id="snapBtn">📸 حفظ صورة</button>
-      <button id="stopBtn">⏹ إيقاف</button>
-      <div class="row" style="grid-column:1/-1; justify-content:center;">
-        <label style="font-size:.8rem; color:var(--muted);">طولك (سم)</label>
-        <input type="number" id="heightInput" placeholder="170" min="100" max="220" style="width:70px; padding:8px; border-radius:10px; border:1px solid var(--card-b); background:rgba(255,255,255,.08); color:var(--text); text-align:center;">
-      </div>
-      <button id="calibBtn" class="primary" style="grid-column:1/-1;">📏 معايرة القياس (قف كاملاً في الإطار)</button>
-    </div>
-    <div id="status"></div>
+  <div class="toolbar">
+    <button id="startBtn" title="تشغيل الكاميرا">📷</button>
+    <button id="stopBtn" title="إيقاف">⏹</button>
+    <button id="camBtn" title="أمامية/خلفية">🤳</button>
+    <button id="modeBtn" title="تلقائي/يدوي">🔄</button>
+    <button id="snapBtn" title="حفظ صورة">📸</button>
+    <button id="calibBtn" title="معايرة القياس">📏</button>
+  </div>
+  <div id="status"></div>
+
+  <div class="pills">
+    <button class="pill colorbtn" data-target="top"><span class="dot" id="topDot"></span> 👕 القميص</button>
+    <button class="pill colorbtn" data-target="bottom"><span class="dot" id="bottomDot"></span> 👖 البنطال</button>
   </div>
 
   <div class="card">
-    <h2>👕 القطعة العلوية</h2>
-    <div class="row"><button class="colorbtn" data-target="top"><span class="dot" id="topDot"></span> اختر لون القميص</button></div>
-    <div class="row">
-      <label class="filebtn" for="topImgInput">📁 رفع صورة قميص</label>
-      <input type="file" accept="image/*" id="topImgInput">
-      <button id="topImgClear" class="small">إزالة</button>
+    <div class="row" style="justify-content:center;">
+      <label style="font-size:.72rem; color:var(--muted);">طولك (سم)</label>
+      <input type="number" id="heightInput" placeholder="170" min="100" max="220" style="width:60px; padding:6px; border-radius:8px; border:1px solid var(--card-b); background:rgba(255,255,255,.08); color:var(--text); text-align:center; font-size:.75rem;">
+      <span style="font-size:.65rem; color:var(--muted);">للمعايرة الدقيقة قبل الضغط على 📏</span>
     </div>
   </div>
 
   <div class="card">
-    <h2>👖 القطعة السفلية</h2>
-    <div class="row"><button class="colorbtn" data-target="bottom"><span class="dot" id="bottomDot"></span> اختر لون البنطال</button></div>
-    <div class="row">
-      <label class="filebtn" for="bottomImgInput">📁 رفع صورة بنطال</label>
-      <input type="file" accept="image/*" id="bottomImgInput">
-      <button id="bottomImgClear" class="small">إزالة</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>🎨 اقتراحات تنسيق الألوان (اضغط لتطبيقها على السفلية)</h2>
+    <h2>🎨 اقتراحات تنسيق الألوان</h2>
     <div class="harmony" id="harmony"></div>
   </div>
 </div>
@@ -136,6 +131,14 @@
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true">
   <div class="drawer-head"><span id="drawerTitle">🎨 الألوان</span><button class="small" id="drawerClose">✕ إغلاق</button></div>
+  <div class="row">
+    <label class="filebtn" for="topImgInput" id="topUploadRow">📁 رفع صورة قميص</label>
+    <label class="filebtn" for="bottomImgInput" id="bottomUploadRow" style="display:none;">📁 رفع صورة بنطال</label>
+    <button id="topImgClear" class="small" style="display:none;">إزالة</button>
+    <button id="bottomImgClear" class="small" style="display:none;">إزالة</button>
+    <input type="file" accept="image/*" id="topImgInput">
+    <input type="file" accept="image/*" id="bottomImgInput">
+  </div>
   <div class="lbl">اللون الأساسي</div>
   <div class="fam" id="famRow"></div>
   <div class="lbl">التدرجات (من الفاتح إلى الداكن)</div>
@@ -146,7 +149,7 @@
   </div>
 </aside>
 
-<div class="ver">إصدار 13</div>
+<div class="ver">إصدار 15</div>
 
 <script>
 const video = document.getElementById('video');
@@ -188,9 +191,13 @@ function renderShades(){
 }
 function openDrawer(which){
   drawerTarget=which;
-  document.getElementById('drawerTitle').textContent = which==='top' ? '🎨 لون القطعة العلوية' : '🎨 لون القطعة السفلية';
+  document.getElementById('drawerTitle').textContent = which==='top' ? '🎨 لون وصورة القطعة العلوية' : '🎨 لون وصورة القطعة السفلية';
   document.getElementById('topColor').style.display = which==='top' ? '' : 'none';
   document.getElementById('bottomColor').style.display = which==='bottom' ? '' : 'none';
+  document.getElementById('topUploadRow').style.display = which==='top' ? '' : 'none';
+  document.getElementById('bottomUploadRow').style.display = which==='bottom' ? '' : 'none';
+  document.getElementById('topImgClear').style.display = (which==='top' && topImgRaw) ? '' : 'none';
+  document.getElementById('bottomImgClear').style.display = (which==='bottom' && bottomImgRaw) ? '' : 'none';
   famIdx=nearestFamily(document.getElementById(which+'Color').value);
   renderShades();
   document.body.classList.add('drawer-open');
@@ -275,13 +282,14 @@ function loadClothingImage(file, which){
     if(which==='top') topImgRaw=img; else bottomImgRaw=img;
     retint(which);
     statusEl.textContent='تم إضافة صورة الملابس — يمكنك الآن تغيير لونها من منتقي الألوان.';
+    document.getElementById(which+'ImgClear').style.display='';
   };
   img.src = URL.createObjectURL(file);
 }
 document.getElementById('topImgInput').addEventListener('change', e=>{ if(e.target.files[0]) loadClothingImage(e.target.files[0],'top'); });
 document.getElementById('bottomImgInput').addEventListener('change', e=>{ if(e.target.files[0]) loadClothingImage(e.target.files[0],'bottom'); });
-document.getElementById('topImgClear').onclick = ()=>{ topImgRaw=null; topTinted=null; document.getElementById('topImgInput').value=''; };
-document.getElementById('bottomImgClear').onclick = ()=>{ bottomImgRaw=null; bottomTinted=null; document.getElementById('bottomImgInput').value=''; };
+document.getElementById('topImgClear').onclick = ()=>{ topImgRaw=null; topTinted=null; document.getElementById('topImgInput').value=''; document.getElementById('topImgClear').style.display='none'; };
+document.getElementById('bottomImgClear').onclick = ()=>{ bottomImgRaw=null; bottomTinted=null; document.getElementById('bottomImgInput').value=''; document.getElementById('bottomImgClear').style.display='none'; };
 
 function drawManual(){
   Object.entries(boxes).forEach(([key,b])=>{
@@ -403,9 +411,9 @@ async function initPose(){
   }
 }
 
-function kp(keypoints, name){
+function kp(keypoints, name, minScore){
   const p = keypoints.find(k=>k.name===name);
-  if(!p || p.score<0.3) return null;
+  if(!p || p.score<(minScore||0.3)) return null;
   return {x:p.x, y:p.y};
 }
 
@@ -443,7 +451,11 @@ function poseLoop(){
           const ox=(overlay.width-vw*sc)/2, oy=(overlay.height-vh*sc)/2;
           const raw = {};
           ['left_shoulder','right_shoulder','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle']
-            .forEach(n=>{ const p=kp(poses[0].keypoints,n); raw[n]= p? {x:p.x*sc+ox, y:p.y*sc+oy} : null; });
+            .forEach(n=>{
+              const isCore = n==='left_shoulder'||n==='right_shoulder'||n==='left_hip'||n==='right_hip';
+              const p=kp(poses[0].keypoints,n, isCore?0.45:0.3);
+              raw[n]= p? {x:p.x*sc+ox, y:p.y*sc+oy} : null;
+            });
           const ls=smoothPt('ls',raw.left_shoulder), rs=smoothPt('rs',raw.right_shoulder);
           const lh=smoothPt('lh',raw.left_hip), rh=smoothPt('rh',raw.right_hip);
           const lk=smoothPt('lk',raw.left_knee), rk=smoothPt('rk',raw.right_knee);
@@ -467,7 +479,11 @@ function poseLoop(){
           const down = {x:-Math.sin(bodyAngle), y:Math.cos(bodyAngle)};
           const heightCm = calib ? calib.heightCm : (parseFloat(document.getElementById('heightInput').value)||170);
 
-          if(ls && rs && lh && rh){
+          const bodyVisible = ls && rs && lh && rh;
+          if(!bodyVisible){ hintText.textContent='قف للخلف قليلًا بحيث يظهر الجذع والوركان بوضوح'; }
+          else if(hintText.textContent.includes('قف للخلف')){ hintText.textContent='قف بحيث يظهر جسمك بالكامل تقريبًا في الإطار'; }
+
+          if(bodyVisible){
             const liveShoulderW = Math.hypot(rs.x-ls.x, rs.y-ls.y);
             const w = liveShoulderW * (calib?calib.shirtWRatio:1.55);
             const h2 = calib ? calib.pxPerCm*heightCm*0.36
@@ -475,8 +491,8 @@ function poseLoop(){
             const center = {x: hipMid.x-down.x*(h2*0.5), y: hipMid.y-down.y*(h2*0.5)};
             drawGarment(center, bodyAngle, w, h2, topTinted, document.getElementById('topColor').value);
           }
-          if(lh && rh){
-            const liveShoulderW2 = (ls&&rs) ? Math.hypot(rs.x-ls.x, rs.y-ls.y) : Math.hypot(rh.x-lh.x,rh.y-lh.y)/0.85;
+          if(bodyVisible){
+            const liveShoulderW2 = Math.hypot(rs.x-ls.x, rs.y-ls.y);
             const w = liveShoulderW2 * (calib?calib.pantsWRatio:(Math.hypot(rh.x-lh.x,rh.y-lh.y)*1.6/liveShoulderW2));
             const h2 = calib ? calib.pxPerCm*heightCm*0.50
                              : (legEndMid?Math.hypot(legEndMid.x-hipMid.x,legEndMid.y-hipMid.y)*1.15:liveShoulderW2*1.6);
