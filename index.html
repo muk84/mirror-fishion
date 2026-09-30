@@ -142,7 +142,7 @@
   </div>
 </aside>
 
-<div class="ver">إصدار 11</div>
+<div class="ver">إصدار 12</div>
 
 <script>
 const video = document.getElementById('video');
@@ -459,7 +459,7 @@ function poseLoop(){
             const shoulderMid={x:(ls.x+rs.x)/2,y:(ls.y+rs.y)/2};
             const w = liveShoulderW * (calib?calib.shirtWRatio:1.55);
             const h2 = liveShoulderW * (calib?calib.shirtHRatio:(Math.hypot(hipMid.x-shoulderMid.x,hipMid.y-shoulderMid.y)*1.35/liveShoulderW));
-            const center = {x: shoulderMid.x+down.x*(h2*0.42), y: shoulderMid.y+down.y*(h2*0.42)};
+            const center = {x: (shoulderMid.x+hipMid.x)/2 - down.x*(h2*0.05), y: (shoulderMid.y+hipMid.y)/2 - down.y*(h2*0.05)};
             drawGarment(center, angle, w, h2, topTinted, document.getElementById('topColor').value);
           }
           if(lh && rh){
