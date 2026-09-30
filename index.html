@@ -97,6 +97,7 @@
       <button id="modeBtn">🔄 تلقائي / يدوي</button>
       <button id="snapBtn">📸 حفظ صورة</button>
       <button id="stopBtn">⏹ إيقاف</button>
+      <button id="calibBtn" class="primary" style="grid-column:1/-1;">📏 معايرة القياس (قف كاملاً في الإطار)</button>
     </div>
     <div id="status"></div>
   </div>
@@ -141,7 +142,7 @@
   </div>
 </aside>
 
-<div class="ver">إصدار 10</div>
+<div class="ver">إصدار 11</div>
 
 <script>
 const video = document.getElementById('video');
@@ -227,28 +228,23 @@ function setStageSize(){
 window.addEventListener('resize', setStageSize);
 setStageSize();
 
-function drawPolygon(points, color){
-  if(points.length<3) return;
+function rrPath(x,y,w,h,r){
   ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for(let i=1;i<points.length;i++) ctx.lineTo(points[i].x, points[i].y);
-  ctx.closePath();
-  ctx.fillStyle = color;
-  ctx.globalAlpha = 0.6;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.strokeStyle='rgba(255,255,255,.55)';
-  ctx.lineWidth=1.5;
-  ctx.stroke();
+  if(ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h);
 }
-
-function drawImageFitted(img, center, angle, w, h){
+function drawGarment(center, angle, w, h, tintedImg, color){
   ctx.save();
   ctx.translate(center.x, center.y);
   ctx.rotate(angle);
-  ctx.globalAlpha = 0.92;
-  ctx.drawImage(img, -w/2, -h/2, w, h);
-  ctx.globalAlpha = 1;
+  if(tintedImg){
+    ctx.globalAlpha = 0.92;
+    ctx.drawImage(tintedImg, -w/2, -h/2, w, h);
+    ctx.globalAlpha = 1;
+  } else {
+    rrPath(-w/2,-h/2,w,h, Math.min(w,h)*0.14);
+    ctx.fillStyle = color; ctx.globalAlpha = 0.6; ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.5; ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -348,9 +344,42 @@ let smooth={};
 function smoothPt(name, p){
   if(!p) return smooth[name];
   const prev = smooth[name];
-  const s = prev ? {x: prev.x*0.5+p.x*0.5, y: prev.y*0.5+p.y*0.5} : p;
+  const s = prev ? {x: prev.x*0.72+p.x*0.28, y: prev.y*0.72+p.y*0.28} : p;
   smooth[name]=s;
   return s;
+}
+
+/* ---------- calibration: lock stable body-proportion ratios ---------- */
+let calib=null, calibrating=false, calibSamples=[];
+function median(arr){ const a=[...arr].sort((x,y)=>x-y); return a[Math.floor(a.length/2)]; }
+document.getElementById('calibBtn').onclick = ()=>{
+  if(!usePose || !detector){ statusEl.textContent='شغّل الكاميرا وانتظر تفعيل الوضع التلقائي أولاً.'; return; }
+  calibrating = true; calibSamples = [];
+  guide.style.display='block';
+  hintText.textContent='قف باستقامة وجسمك كاملاً داخل الإطار المتقطع، ثابتًا لثانيتين...';
+};
+function tryCalibrate(ls,rs,lh,rh,legEndMid){
+  if(!calibrating) return;
+  if(!(ls&&rs&&lh&&rh&&legEndMid)) return;
+  const shoulderW = Math.hypot(rs.x-ls.x, rs.y-ls.y);
+  const hipW = Math.hypot(rh.x-lh.x, rh.y-lh.y);
+  const shoulderMid={x:(ls.x+rs.x)/2,y:(ls.y+rs.y)/2}, hipMid={x:(lh.x+rh.x)/2,y:(lh.y+rh.y)/2};
+  const torsoH = Math.hypot(hipMid.x-shoulderMid.x, hipMid.y-shoulderMid.y);
+  const legL = Math.hypot(legEndMid.x-hipMid.x, legEndMid.y-hipMid.y);
+  if(shoulderW<10) return;
+  calibSamples.push({shoulderW, hipW, torsoH, legL});
+  if(calibSamples.length>=36){
+    const sw = median(calibSamples.map(s=>s.shoulderW));
+    calib = {
+      shirtWRatio: (sw*1.55)/sw,
+      shirtHRatio: (median(calibSamples.map(s=>s.torsoH))*1.35)/sw,
+      pantsWRatio: (median(calibSamples.map(s=>s.hipW))*1.6)/sw,
+      pantsHRatio: (median(calibSamples.map(s=>s.legL))*1.15)/sw
+    };
+    calibrating=false; guide.style.display='none';
+    hintText.textContent='تمت المعايرة ✅ — مقاس الملابس الآن ثابت حتى لو تحركت';
+    statusEl.textContent='تمت المعايرة بنجاح.';
+  }
 }
 async function initPose(){
   try{
@@ -416,53 +445,32 @@ function poseLoop(){
           const lh=smoothPt('lh',raw.left_hip), rh=smoothPt('rh',raw.right_hip);
           const lk=smoothPt('lk',raw.left_knee), rk=smoothPt('rk',raw.right_knee);
           const la=smoothPt('la',raw.left_ankle), ra=smoothPt('ra',raw.right_ankle);
+          const hipMid = (lh&&rh) ? {x:(lh.x+rh.x)/2, y:(lh.y+rh.y)/2} : null;
+          const leftEnd = la || lk, rightEnd = ra || rk;
+          const legEndMid = (leftEnd&&rightEnd) ? {x:(leftEnd.x+rightEnd.x)/2,y:(leftEnd.y+rightEnd.y)/2}
+                            : (leftEnd||rightEnd||null);
+          tryCalibrate(ls,rs,lh,rh,legEndMid);
+
           if(ls && rs && lh && rh){
-            const shoulderW = {x: rs.x-ls.x, y: rs.y-ls.y};
-            const sleeveDrop = Math.abs(lh.y-ls.y)*0.22;
-            const ext = 0.14;
-            if(topTinted){
-              const shoulderMid={x:(ls.x+rs.x)/2,y:(ls.y+rs.y)/2};
-              const hipMid2={x:(lh.x+rh.x)/2,y:(lh.y+rh.y)/2};
-              const w = Math.hypot(shoulderW.x,shoulderW.y)*1.55;
-              const h2 = Math.hypot(hipMid2.x-shoulderMid.x, hipMid2.y-shoulderMid.y)*1.35;
-              const angle = Math.atan2(shoulderW.y, shoulderW.x);
-              const center = {x:(shoulderMid.x+hipMid2.x)/2, y:(shoulderMid.y+hipMid2.y)/2 - h2*0.05};
-              drawImageFitted(topTinted, center, angle, w, h2);
-            } else {
-              const shirt = [
-                {x: ls.x - shoulderW.x*ext, y: ls.y - shoulderW.y*ext},
-                {x: rs.x + shoulderW.x*ext, y: rs.y + shoulderW.y*ext},
-                {x: rs.x, y: rs.y + sleeveDrop},
-                rh, lh,
-                {x: ls.x, y: ls.y + sleeveDrop}
-              ];
-              drawPolygon(shirt, document.getElementById('topColor').value);
-            }
+            const shoulderVec = {x: rs.x-ls.x, y: rs.y-ls.y};
+            const liveShoulderW = Math.hypot(shoulderVec.x, shoulderVec.y);
+            const angle = Math.atan2(shoulderVec.y, shoulderVec.x);
+            const down = {x:-Math.sin(angle), y:Math.cos(angle)};
+            const shoulderMid={x:(ls.x+rs.x)/2,y:(ls.y+rs.y)/2};
+            const w = liveShoulderW * (calib?calib.shirtWRatio:1.55);
+            const h2 = liveShoulderW * (calib?calib.shirtHRatio:(Math.hypot(hipMid.x-shoulderMid.x,hipMid.y-shoulderMid.y)*1.35/liveShoulderW));
+            const center = {x: shoulderMid.x+down.x*(h2*0.42), y: shoulderMid.y+down.y*(h2*0.42)};
+            drawGarment(center, angle, w, h2, topTinted, document.getElementById('topColor').value);
           }
           if(lh && rh){
-            const hipMid = {x:(lh.x+rh.x)/2, y:(lh.y+rh.y)/2};
-            const leftEnd = la || lk, rightEnd = ra || rk;
-            if(bottomTinted && (leftEnd || rightEnd)){
-              const legBottomMid = {
-                x:((leftEnd?leftEnd.x:hipMid.x)+(rightEnd?rightEnd.x:hipMid.x))/2,
-                y:((leftEnd?leftEnd.y:hipMid.y)+(rightEnd?rightEnd.y:hipMid.y))/2
-              };
-              const hipW = Math.hypot(rh.x-lh.x, rh.y-lh.y);
-              const w = hipW*1.6;
-              const h2 = Math.hypot(legBottomMid.x-hipMid.x, legBottomMid.y-hipMid.y)*1.15;
-              const angle = Math.atan2(rh.y-lh.y, rh.x-lh.x);
-              const center = {x:(hipMid.x+legBottomMid.x)/2, y:(hipMid.y+legBottomMid.y)/2};
-              drawImageFitted(bottomTinted, center, angle, w, h2);
-            } else {
-              if(leftEnd){
-                const inner = {x: hipMid.x - (hipMid.x-leftEnd.x)*0.15, y: leftEnd.y};
-                drawPolygon([lh, hipMid, inner, leftEnd], document.getElementById('bottomColor').value);
-              }
-              if(rightEnd){
-                const inner = {x: hipMid.x - (hipMid.x-rightEnd.x)*0.15, y: rightEnd.y};
-                drawPolygon([rh, hipMid, inner, rightEnd], document.getElementById('bottomColor').value);
-              }
-            }
+            const hipVec = {x: rh.x-lh.x, y: rh.y-lh.y};
+            const liveShoulderW2 = (ls&&rs) ? Math.hypot(rs.x-ls.x, rs.y-ls.y) : Math.hypot(hipVec.x,hipVec.y)/0.9;
+            const angle = Math.atan2(hipVec.y, hipVec.x);
+            const down = {x:-Math.sin(angle), y:Math.cos(angle)};
+            const w = liveShoulderW2 * (calib?calib.pantsWRatio:(Math.hypot(hipVec.x,hipVec.y)*1.6/liveShoulderW2));
+            const h2 = liveShoulderW2 * (calib?calib.pantsHRatio:(legEndMid?Math.hypot(legEndMid.x-hipMid.x,legEndMid.y-hipMid.y)*1.15/liveShoulderW2:liveShoulderW2*1.6));
+            const center = {x: hipMid.x+down.x*(h2*0.5), y: hipMid.y+down.y*(h2*0.5)};
+            drawGarment(center, angle, w, h2, bottomTinted, document.getElementById('bottomColor').value);
           }
         }
       }catch(e){ /* skip frame on error */ }
